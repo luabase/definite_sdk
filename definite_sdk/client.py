@@ -1,4 +1,4 @@
-from store import DefiniteKVStore
+from definite_sdk.store import DefiniteKVStore
 
 API_URL = "https://api.definite.app"
 
