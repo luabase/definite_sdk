@@ -1,0 +1,29 @@
+
+[flake8]
+max-line-length = 88
+[tool.poetry]
+name = "definite-sdk"
+version = "0.1.0"
+description = "Definite SDK for Python"
+authors = ["Definite <hello@definite.app>"]
+license = "MIT"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.9"
+requests = "^2.31.0"
+
+
+[tool.poetry.group.dev.dependencies]
+black = "^24.4.2"
+flake8 = "^7.0.0"
+mypy = "^1.10.0"
+types-requests = "^2.31.0.20240406"
+pytest = "^8.2.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.isort]
+profile = "black"
