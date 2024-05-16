@@ -45,8 +45,7 @@ class DefiniteKVStore:
         self._name = name
         self._store_url = api_url + STORE_ENDPOINT
         response = requests.get(
-            self._store_url,
-            json={"name": self._name},
+            self._store_url + f"/{name}",
             headers={"Authorization": "Bearer " + self._api_key},
         )
 
