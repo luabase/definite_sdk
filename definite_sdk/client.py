@@ -1,3 +1,5 @@
+from definite_sdk.integration import DefiniteIntegrationStore
+from definite_sdk.secret import DefiniteSecretStore
 from definite_sdk.store import DefiniteKVStore
 
 API_URL = "https://api.definite.app"
@@ -21,3 +23,19 @@ class DefiniteClient:
         """
 
         return DefiniteKVStore(name, self.api_key, self.api_url)
+
+    def get_secret_store(self) -> DefiniteSecretStore:
+        """Initializes the secret store.
+
+        See DefiniteSecretStore for more how to interact with the store.
+        """
+
+        return DefiniteSecretStore(self.api_key, self.api_url)
+
+    def get_integration_store(self) -> DefiniteIntegrationStore:
+        """Initializes the integration store.
+
+        See DefiniteIntegrationStore for more how to interact with the store.
+        """
+
+        return DefiniteIntegrationStore(self.api_key, self.api_url)
