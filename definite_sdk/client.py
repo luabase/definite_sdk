@@ -1,5 +1,6 @@
 from definite_sdk.integration import DefiniteIntegrationStore
 from definite_sdk.secret import DefiniteSecretStore
+from definite_sdk.sql import DefiniteSqlClient
 from definite_sdk.store import DefiniteKVStore
 
 API_URL = "https://api.definite.app"
@@ -39,3 +40,11 @@ class DefiniteClient:
         """
 
         return DefiniteIntegrationStore(self.api_key, self.api_url)
+
+    def get_sql_client(self) -> DefiniteSqlClient:
+        """Initializes the SQL client for executing SQL queries.
+
+        See DefiniteSqlClient for more how to execute SQL queries.
+        """
+
+        return DefiniteSqlClient(self.api_key, self.api_url)
