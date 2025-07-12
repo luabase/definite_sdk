@@ -47,7 +47,7 @@ class DefiniteSecretStore:
         )
         response.raise_for_status()
         return iter(response.json()["secrets"])
-    
+
     def get_secret(self, key: str) -> str:
         """
         Retrieves the value of a secret.
@@ -63,8 +63,8 @@ class DefiniteSecretStore:
             headers={"Authorization": "Bearer " + self._api_key},
         )
         response.raise_for_status()
-        return response.json()["value"]
-    
+        return str(response.json()["value"])
+
     def set_secret(self, key: str, value: str):
         """
         Sets the value of a secret.

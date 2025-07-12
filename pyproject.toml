@@ -9,6 +9,11 @@ readme = "README.md"
 [tool.poetry.dependencies]
 python = "^3.9"
 requests = "^2.31.0"
+dlt = {version = "^1.0", optional = true}
+duckdb = {version = "^1.0", optional = true}
+
+[tool.poetry.extras]
+dlt = ["dlt", "duckdb"]
 
 
 [tool.poetry.group.dev.dependencies]

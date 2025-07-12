@@ -1,4 +1,4 @@
-from typing import Iterator
+from typing import Iterator, Union, Optional
 
 import requests
 
@@ -109,7 +109,7 @@ class DefiniteKVStore:
         self._data = {}
         self._version_id = None
 
-    def __getitem__(self, key: str) -> str | None:
+    def __getitem__(self, key: str) -> Optional[str]:
         """
         Gets the value for a given key.
 
@@ -190,3 +190,19 @@ class DefiniteKVStore:
             print(store)
         """
         return repr(self._data)
+
+    def get(self, key: str, default: Optional[str] = None) -> Optional[str]:
+        """
+        Gets the value for a given key with a default.
+
+        Args:
+            key (str): The key to retrieve the value for.
+            default: The default value to return if key doesn't exist.
+
+        Returns:
+            The value associated with the key, or default if the key does not exist.
+
+        Example:
+            value = store.get("key1", "default_value")
+        """
+        return self._data.get(key, default)
