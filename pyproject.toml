@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "definite-sdk"
-version = "0.1.4"
+version = "0.1.8"
 description = "Definite SDK for Python"
 authors = ["Definite <hello@definite.app>"]
 license = "MIT"

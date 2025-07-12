@@ -10,7 +10,7 @@ from definite_sdk.secret import DefiniteSecretStore
 from definite_sdk.sql import DefiniteSqlClient
 from definite_sdk.store import DefiniteKVStore
 
-__version__ = "0.1.4"
+__version__ = "0.1.8"
 __all__ = [
     "DefiniteClient",
     "DefiniteIntegrationStore",
