@@ -1,6 +1,6 @@
 # Definite SDK
 
-A Python client for interacting with the Definite API, providing a convenient interface for key-value store operations, SQL query execution, secrets management, and DLT (Data Load Tool) integration with state persistence.
+A Python client for interacting with the Definite API, providing a convenient interface for key-value store operations, SQL query execution, secrets management, messaging capabilities, and DLT (Data Load Tool) integration with state persistence.
 
 ## Installation
 
@@ -36,6 +36,7 @@ client = DefiniteClient("YOUR_API_KEY")
 - **Cube Query Execution**: Execute Cube queries for advanced analytics and data modeling
 - **Secret Management**: Secure storage and retrieval of application secrets
 - **Integration Store**: Read-only access to integration configurations
+- **Messaging**: Send messages through various channels (Slack, and more coming soon)
 - **dlt Integration**: Run dlt pipelines with automatic state persistence to Definite
 - **DuckDB Support**: Automatic discovery and connection to team's DuckDB integrations
 
@@ -144,6 +145,49 @@ integrations = list(integration_store.list_integrations())
 
 # Get a specific integration
 integration = integration_store.get_integration("my_integration")
+```
+
+### 💬 Messaging
+
+Send messages through various channels using the messaging client.
+
+```python
+# Initialize the message client
+message_client = client.get_message_client()
+# Or use the alias method
+message_client = client.message_client()
+
+# Send a Slack message using the unified interface
+result = message_client.send_message(
+    channel="slack",
+    integration_id="your_slack_integration_id",
+    to="C0920MVPWFN",  # Slack channel ID
+    content="Hello from Definite SDK! 👋"
+)
+
+# Send a Slack message with blocks and threading
+result = message_client.send_message(
+    channel="slack",
+    integration_id="your_slack_integration_id",
+    to="C0920MVPWFN",
+    content="Fallback text",
+    blocks=[{
+        "type": "section",
+        "text": {"type": "mrkdwn", "text": "*Important Update*"}
+    }],
+    thread_ts="1234567890.123456"  # Reply in thread
+)
+
+# Or use the convenience method for Slack
+result = message_client.send_slack_message(
+    integration_id="your_slack_integration_id",
+    channel_id="C0920MVPWFN",
+    text="Quick message using the convenience method!",
+    blocks=[{
+        "type": "section",
+        "text": {"type": "mrkdwn", "text": "Message with *rich* _formatting_"}
+    }]
+)
 ```
 
 ### dlt Integration

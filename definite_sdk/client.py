@@ -2,6 +2,7 @@ import os
 from typing import Optional
 
 from definite_sdk.integration import DefiniteIntegrationStore
+from definite_sdk.message import DefiniteMessageClient
 from definite_sdk.secret import DefiniteSecretStore
 from definite_sdk.sql import DefiniteSqlClient
 from definite_sdk.store import DefiniteKVStore
@@ -77,3 +78,15 @@ class DefiniteClient:
     def integration_store(self) -> DefiniteIntegrationStore:
         """Alias for get_integration_store."""
         return self.get_integration_store()
+
+    def get_message_client(self) -> DefiniteMessageClient:
+        """Initializes the message client for sending messages via various channels.
+
+        See DefiniteMessageClient for more how to send messages.
+        """
+
+        return DefiniteMessageClient(self.api_key, self.api_url)
+
+    def message_client(self) -> DefiniteMessageClient:
+        """Alias for get_message_client."""
+        return self.get_message_client()
