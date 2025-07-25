@@ -38,6 +38,7 @@ client = DefiniteClient("YOUR_API_KEY")
 - **Integration Store**: Read-only access to integration configurations
 - **Messaging**: Send messages through various channels (Slack, and more coming soon)
 - **dlt Integration**: Run dlt pipelines with automatic state persistence to Definite
+- **DuckLake Integration**: Easy attachment of your team's DuckLake to DuckDB connections
 - **DuckDB Support**: Automatic discovery and connection to team's DuckDB integrations
 
 ## Basic Usage
@@ -208,6 +209,39 @@ pipeline.run(orders())
 
 # State is automatically persisted to Definite
 last_cursor = pipeline.get_state("orders")
+```
+
+### DuckLake Integration
+
+Attach your team's DuckLake to a DuckDB connection for seamless data access:
+
+```python
+import duckdb
+from definite_sdk import DefiniteClient
+
+# Initialize the client
+client = DefiniteClient("YOUR_API_KEY")
+
+# Connect to DuckDB and attach DuckLake
+conn = duckdb.connect()
+conn.execute(client.attach_ducklake())
+
+# Now you can use DuckLake tables
+conn.execute("CREATE SCHEMA IF NOT EXISTS lake.my_schema;")
+conn.execute("CREATE OR REPLACE TABLE lake.my_schema.users AS SELECT * FROM df")
+
+# Query your DuckLake data
+result = conn.sql("SELECT * FROM lake.my_schema.users").df()
+```
+
+You can also specify a custom alias for the attached DuckLake:
+
+```python
+# Attach with custom alias
+conn.execute(client.attach_ducklake(alias="warehouse"))
+
+# Use the custom alias
+conn.execute("SELECT * FROM warehouse.my_schema.users")
 ```
 
 ### DuckDB Integration Discovery
