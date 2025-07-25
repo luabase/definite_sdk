@@ -84,7 +84,9 @@ class DefiniteSqlClient:
     def execute_cube_query(
         self, 
         cube_query: Dict[str, Any], 
-        integration_id: Optional[str] = None
+        integration_id: Optional[str] = None,
+        persist: bool = True,
+        invalidate: bool = False,
     ) -> Dict[str, Any]:
         """
         Executes a Cube query against a Cube integration.
@@ -93,6 +95,8 @@ class DefiniteSqlClient:
             cube_query (Dict[str, Any]): The Cube query in JSON format.
             integration_id (Optional[str]): The Cube integration ID to query against.
                 If not provided, the default integration will be used.
+            persist (bool): Whether to persist the query result to the cache.
+            invalidate (bool): Whether to invalidate the cached result.
 
         Returns:
             Dict[str, Any]: The query result as returned by the API.
@@ -116,7 +120,10 @@ class DefiniteSqlClient:
         payload = {"cube_query": cube_query}
         if integration_id:
             payload["integration_id"] = integration_id
-
+        if persist:
+            payload["persist"] = persist
+        if invalidate:
+            payload["invalidate"] = invalidate
         response = requests.post(
             self._sql_url,
             json=payload,
