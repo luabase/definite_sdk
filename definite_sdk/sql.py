@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, Optional
 
 import requests
 
@@ -31,7 +31,9 @@ class DefiniteSqlClient:
     ...     "timeDimensions": [{"dimension": "sales.date", "granularity": "month"}],
     ...     "limit": 1000
     ... }
-    >>> result = sql_client.execute_cube_query(cube_query, integration_id="my_cube_integration")
+    >>> result = sql_client.execute_cube_query(
+    ...     cube_query, integration_id="my_cube_integration"
+    ... )
     >>> print(result)
     """
 
@@ -46,11 +48,7 @@ class DefiniteSqlClient:
         self._api_key = api_key
         self._sql_url = api_url + SQL_ENDPOINT
 
-    def execute(
-        self, 
-        sql: str, 
-        integration_id: Optional[str] = None
-    ) -> Dict[str, Any]:
+    def execute(self, sql: str, integration_id: Optional[str] = None) -> Dict[str, Any]:
         """
         Executes a SQL query against a database integration.
 
@@ -69,7 +67,7 @@ class DefiniteSqlClient:
             >>> result = sql_client.execute("SELECT COUNT(*) FROM users")
             >>> print(result)
         """
-        payload = {"sql": sql}
+        payload: Dict[str, Any] = {"sql": sql}
         if integration_id:
             payload["integration_id"] = integration_id
 
@@ -82,11 +80,12 @@ class DefiniteSqlClient:
         return response.json()
 
     def execute_cube_query(
-        self, 
-        cube_query: Dict[str, Any], 
+        self,
+        cube_query: Dict[str, Any],
         integration_id: Optional[str] = None,
         persist: bool = True,
         invalidate: bool = False,
+        raw: bool = False,
     ) -> Dict[str, Any]:
         """
         Executes a Cube query against a Cube integration.
@@ -97,6 +96,7 @@ class DefiniteSqlClient:
                 If not provided, the default integration will be used.
             persist (bool): Whether to persist the query result to the cache.
             invalidate (bool): Whether to invalidate the cached result.
+            raw (bool): Whether to return raw/unformatted cube results.
 
         Returns:
             Dict[str, Any]: The query result as returned by the API.
@@ -110,22 +110,36 @@ class DefiniteSqlClient:
             ...     "measures": ["sales.total_amount"],
             ...     "timeDimensions": [{
             ...         "dimension": "sales.date",
-            ...         "granularity": "month"
+            ...         "granularity": "month",
             ...     }],
             ...     "limit": 1000
             ... }
-            >>> result = sql_client.execute_cube_query(cube_query, "my_cube_integration")
+            >>> result = sql_client.execute_cube_query(
+            ...     cube_query, "my_cube_integration"
+            ... )
             >>> print(result)
+
+            >>> # To get raw/unformatted results:
+            >>> raw_result = sql_client.execute_cube_query(
+            ...     cube_query, "my_cube_integration", raw=True
+            ... )
+            >>> print(raw_result)
         """
-        payload = {"cube_query": cube_query}
+        payload: Dict[str, Any] = {"cube_query": cube_query}
         if integration_id:
             payload["integration_id"] = integration_id
         if persist:
             payload["persist"] = persist
         if invalidate:
             payload["invalidate"] = invalidate
+
+        # Build URL with query parameters
+        url = self._sql_url
+        if raw:
+            url += "?raw=true"
+
         response = requests.post(
-            self._sql_url,
+            url,
             json=payload,
             headers={"Authorization": "Bearer " + self._api_key},
         )
