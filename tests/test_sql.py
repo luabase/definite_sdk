@@ -25,7 +25,7 @@ class TestDefiniteSqlClient:
         assert self.sql_client._api_key == TEST_API_KEY
         assert self.sql_client._sql_url == "https://api.definite.app/v1/query"
 
-    @patch('definite_sdk.sql.requests.post')
+    @patch("definite_sdk.sql.requests.post")
     def test_execute_sql_without_integration_id(self, mock_post):
         """Test executing SQL query without integration ID."""
         # Mock successful response
@@ -33,7 +33,7 @@ class TestDefiniteSqlClient:
         mock_response.json.return_value = {
             "data": [{"count": 10}],
             "columns": ["count"],
-            "success": True
+            "success": True,
         }
         mock_response.raise_for_status.return_value = None
         mock_post.return_value = mock_response
@@ -45,14 +45,14 @@ class TestDefiniteSqlClient:
         mock_post.assert_called_once_with(
             "https://api.definite.app/v1/query",
             json={"sql": "SELECT COUNT(*) as count FROM users"},
-            headers={"Authorization": "Bearer test_api_key"}
+            headers={"Authorization": "Bearer test_api_key"},
         )
 
         # Verify the result
         assert result["success"] is True
         assert result["data"] == [{"count": 10}]
 
-    @patch('definite_sdk.sql.requests.post')
+    @patch("definite_sdk.sql.requests.post")
     def test_execute_sql_with_integration_id(self, mock_post):
         """Test executing SQL query with integration ID."""
         # Mock successful response
@@ -60,15 +60,14 @@ class TestDefiniteSqlClient:
         mock_response.json.return_value = {
             "data": [{"id": 1, "name": "John"}],
             "columns": ["id", "name"],
-            "success": True
+            "success": True,
         }
         mock_response.raise_for_status.return_value = None
         mock_post.return_value = mock_response
 
         # Execute query
         result = self.sql_client.execute(
-            "SELECT id, name FROM users LIMIT 1",
-            integration_id="my_db_integration"
+            "SELECT id, name FROM users LIMIT 1", integration_id="my_db_integration"
         )
 
         # Verify the request
@@ -76,23 +75,23 @@ class TestDefiniteSqlClient:
             "https://api.definite.app/v1/query",
             json={
                 "sql": "SELECT id, name FROM users LIMIT 1",
-                "integration_id": "my_db_integration"
+                "integration_id": "my_db_integration",
             },
-            headers={"Authorization": "Bearer test_api_key"}
+            headers={"Authorization": "Bearer test_api_key"},
         )
 
         # Verify the result
         assert result["success"] is True
         assert result["data"] == [{"id": 1, "name": "John"}]
 
-    @patch('definite_sdk.sql.requests.post')
+    @patch("definite_sdk.sql.requests.post")
     def test_execute_cube_query_without_integration_id(self, mock_post):
         """Test executing Cube query without integration ID."""
         # Mock successful response
         mock_response = Mock()
         mock_response.json.return_value = {
             "data": [{"sales.total_amount": 50000}],
-            "success": True
+            "success": True,
         }
         mock_response.raise_for_status.return_value = None
         mock_post.return_value = mock_response
@@ -101,11 +100,8 @@ class TestDefiniteSqlClient:
         cube_query = {
             "dimensions": [],
             "measures": ["sales.total_amount"],
-            "timeDimensions": [{
-                "dimension": "sales.date",
-                "granularity": "month"
-            }],
-            "limit": 1000
+            "timeDimensions": [{"dimension": "sales.date", "granularity": "month"}],
+            "limit": 1000,
         }
 
         # Execute query
@@ -114,22 +110,22 @@ class TestDefiniteSqlClient:
         # Verify the request
         mock_post.assert_called_once_with(
             "https://api.definite.app/v1/query",
-            json={"cube_query": cube_query},
-            headers={"Authorization": "Bearer test_api_key"}
+            json={"cube_query": cube_query, "persist": True},
+            headers={"Authorization": "Bearer test_api_key"},
         )
 
         # Verify the result
         assert result["success"] is True
         assert result["data"] == [{"sales.total_amount": 50000}]
 
-    @patch('definite_sdk.sql.requests.post')
+    @patch("definite_sdk.sql.requests.post")
     def test_execute_cube_query_with_integration_id(self, mock_post):
         """Test executing Cube query with integration ID."""
         # Mock successful response
         mock_response = Mock()
         mock_response.json.return_value = {
             "data": [{"deals.win_rate": 0.85}],
-            "success": True
+            "success": True,
         }
         mock_response.raise_for_status.return_value = None
         mock_post.return_value = mock_response
@@ -138,17 +134,15 @@ class TestDefiniteSqlClient:
         cube_query = {
             "dimensions": [],
             "measures": ["deals.win_rate"],
-            "timeDimensions": [{
-                "dimension": "deals.close_date",
-                "granularity": "month"
-            }],
-            "limit": 2000
+            "timeDimensions": [
+                {"dimension": "deals.close_date", "granularity": "month"}
+            ],
+            "limit": 2000,
         }
 
         # Execute query
         result = self.sql_client.execute_cube_query(
-            cube_query,
-            integration_id="my_cube_integration"
+            cube_query, integration_id="my_cube_integration"
         )
 
         # Verify the request
@@ -156,16 +150,56 @@ class TestDefiniteSqlClient:
             "https://api.definite.app/v1/query",
             json={
                 "cube_query": cube_query,
-                "integration_id": "my_cube_integration"
+                "integration_id": "my_cube_integration",
+                "persist": True,
             },
-            headers={"Authorization": "Bearer test_api_key"}
+            headers={"Authorization": "Bearer test_api_key"},
         )
 
         # Verify the result
         assert result["success"] is True
         assert result["data"] == [{"deals.win_rate": 0.85}]
 
-    @patch('definite_sdk.sql.requests.post')
+    @patch("definite_sdk.sql.requests.post")
+    def test_execute_cube_query_with_raw_parameter(self, mock_post):
+        """Test executing Cube query with raw parameter."""
+        # Mock successful response
+        mock_response = Mock()
+        mock_response.json.return_value = {
+            "raw_data": [{"value": 100}],
+            "success": True,
+        }
+        mock_response.raise_for_status.return_value = None
+        mock_post.return_value = mock_response
+
+        # Prepare cube query
+        cube_query = {
+            "dimensions": [],
+            "measures": ["sales.total_amount"],
+            "limit": 1000,
+        }
+
+        # Execute query with raw=True
+        result = self.sql_client.execute_cube_query(
+            cube_query, integration_id="my_cube_integration", raw=True
+        )
+
+        # Verify the request includes raw parameter as query param
+        mock_post.assert_called_once_with(
+            "https://api.definite.app/v1/query?raw=true",
+            json={
+                "cube_query": cube_query,
+                "integration_id": "my_cube_integration",
+                "persist": True,
+            },
+            headers={"Authorization": "Bearer test_api_key"},
+        )
+
+        # Verify the result
+        assert result["success"] is True
+        assert result["raw_data"] == [{"value": 100}]
+
+    @patch("definite_sdk.sql.requests.post")
     def test_execute_sql_http_error(self, mock_post):
         """Test handling of HTTP errors during SQL execution."""
         # Mock error response
@@ -177,7 +211,7 @@ class TestDefiniteSqlClient:
         with pytest.raises(requests.HTTPError):
             self.sql_client.execute("SELECT * FROM non_existent_table")
 
-    @patch('definite_sdk.sql.requests.post')
+    @patch("definite_sdk.sql.requests.post")
     def test_execute_cube_query_http_error(self, mock_post):
         """Test handling of HTTP errors during Cube query execution."""
         # Mock error response
@@ -186,11 +220,7 @@ class TestDefiniteSqlClient:
         mock_post.return_value = mock_response
 
         # Prepare cube query
-        cube_query = {
-            "dimensions": [],
-            "measures": ["invalid.measure"],
-            "limit": 1000
-        }
+        cube_query = {"dimensions": [], "measures": ["invalid.measure"], "limit": 1000}
 
         # Execute query and expect HTTPError
         with pytest.raises(requests.HTTPError):
