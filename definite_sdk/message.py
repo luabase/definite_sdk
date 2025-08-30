@@ -21,7 +21,7 @@ class DefiniteMessageClient:
     ...     to="C0920MVPWFN",  # channel_id
     ...     content="Hello from Definite SDK!"
     ... )
-    
+
     >>> # Send a Slack message with blocks and thread
     >>> result = message_client.send_message(
     ...     channel="slack",
@@ -53,7 +53,7 @@ class DefiniteMessageClient:
         subject: Optional[str] = None,
         blocks: Optional[List[Dict[str, Any]]] = None,
         thread_ts: Optional[str] = None,
-        **kwargs: Any
+        **kwargs: Any,
     ) -> Dict[str, Any]:
         """
         Sends a message through the specified channel.
@@ -83,7 +83,7 @@ class DefiniteMessageClient:
             ...     to="C0920MVPWFN",
             ...     content="Hello team!"
             ... )
-            
+
             >>> # Slack message with blocks
             >>> result = message_client.send_message(
             ...     channel="slack",
@@ -97,7 +97,7 @@ class DefiniteMessageClient:
             ... )
         """
         channel_lower = channel.lower()
-        
+
         if channel_lower == "slack":
             return self._send_slack_message(
                 integration_id=integration_id,
@@ -105,7 +105,7 @@ class DefiniteMessageClient:
                 text=content,
                 blocks=blocks,
                 thread_ts=thread_ts,
-                **kwargs
+                **kwargs,
             )
         else:
             raise ValueError(f"Unsupported channel: {channel}")
@@ -117,7 +117,7 @@ class DefiniteMessageClient:
         text: str,
         blocks: Optional[List[Dict[str, Any]]] = None,
         thread_ts: Optional[str] = None,
-        **kwargs: Any
+        **kwargs: Any,
     ) -> Dict[str, Any]:
         """
         Internal method to send a Slack message.
@@ -134,18 +134,18 @@ class DefiniteMessageClient:
             Dict[str, Any]: The API response.
         """
         url = f"{self._message_url}/slack/message"
-        
+
         payload = {
             "integration_id": integration_id,
             "channel_id": channel_id,
-            "text": text
+            "text": text,
         }
-        
+
         if blocks:
             payload["blocks"] = blocks
         if thread_ts:
             payload["thread_ts"] = thread_ts
-            
+
         # Add any additional kwargs to the payload
         payload.update(kwargs)
 
@@ -164,7 +164,7 @@ class DefiniteMessageClient:
         text: str,
         blocks: Optional[List[Dict[str, Any]]] = None,
         thread_ts: Optional[str] = None,
-        **kwargs: Any
+        **kwargs: Any,
     ) -> Dict[str, Any]:
         """
         Convenience method to send a Slack message directly.
@@ -195,5 +195,5 @@ class DefiniteMessageClient:
             content=text,
             blocks=blocks,
             thread_ts=thread_ts,
-            **kwargs
+            **kwargs,
         )

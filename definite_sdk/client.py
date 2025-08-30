@@ -69,16 +69,16 @@ class DefiniteClient:
 
     def attach_ducklake(self, alias: str = "lake") -> str:
         """Generates SQL statements to attach DuckLake to a DuckDB connection.
-        
+
         This method fetches the team's DuckLake integration credentials and generates
         the necessary SQL statements to create a GCS secret and attach DuckLake.
-        
+
         Args:
             alias: The alias name for the attached DuckLake database (default: "lake")
-            
+
         Returns:
             str: SQL statements to execute for attaching DuckLake
-            
+
         Example:
             >>> client = DefiniteClient(os.environ["DEFINITE_API_KEY"])
             >>> sql = client.attach_ducklake()
@@ -86,19 +86,19 @@ class DefiniteClient:
         """
         # Fetch DuckLake integration details
         response = requests.get(
-            f"{self.api_url}/v1/api/integration/DuckLake",
+            f"{self.api_url}/v1/api/integration/Ducklake",
             headers={"Authorization": f"Bearer {self.api_key}"},
         )
         response.raise_for_status()
         dl_integration = response.json()
-        
+
         # Generate SQL statements
         create_secret_sql = f"""CREATE SECRET (
     TYPE gcs,
     KEY_ID '{dl_integration['gcs_access_key_id']}',
     SECRET '{dl_integration['gcs_secret_access_key']}'
 );"""
-        
+
         # Build PostgreSQL connection string
         pg_conn_str = (
             f"postgresql://{dl_integration['pg_user']}:"
@@ -107,13 +107,13 @@ class DefiniteClient:
             f"{dl_integration['pg_port']}/"
             f"{dl_integration['pg_database']}"
         )
-        
+
         attach_sql = (
             f"ATTACH 'ducklake:postgres:{pg_conn_str}' AS {alias} "
             f"(DATA_PATH 'gs://{dl_integration['gcs_bucket_path']}', "
             f"METADATA_SCHEMA '{dl_integration['pg_schema']}');"
         )
-        
+
         return f"{create_secret_sql}\n\n{attach_sql}"
 
     # Alias methods for consistency

@@ -62,7 +62,7 @@ class DefiniteIntegrationStore:
     def lookup_duckdb_integration(self) -> Optional[Tuple[str, str]]:
         """
         Look up the team's DuckDB integration.
-        
+
         Note: Currently, the API only returns extractor (source) integrations.
         Destination integrations like DuckDB are not yet exposed through this endpoint.
         This method is provided for future compatibility when the API is updated.
