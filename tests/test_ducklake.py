@@ -9,7 +9,7 @@ from definite_sdk import DefiniteClient
 class TestDuckLakeIntegration:
     """Test DuckLake integration functionality."""
 
-    @patch('requests.get')
+    @patch("requests.get")
     def test_attach_ducklake_default_alias(self, mock_get):
         """Test attach_ducklake with default alias."""
         # Mock the API response
@@ -35,8 +35,8 @@ class TestDuckLakeIntegration:
 
         # Verify API call
         mock_get.assert_called_once_with(
-            "https://api.definite.app/v1/api/integration/DuckLake",
-            headers={"Authorization": "Bearer test_api_key"}
+            "https://api.definite.app/v1/api/integration/Ducklake",
+            headers={"Authorization": "Bearer test_api_key"},
         )
 
         # Verify SQL generation
@@ -48,9 +48,12 @@ class TestDuckLakeIntegration:
         assert "AS lake" in sql  # default alias
         assert "DATA_PATH 'gs://def-ducklake-staging/test-bucket'" in sql
         assert "METADATA_SCHEMA 'team_test_123'" in sql
-        assert "postgresql://user_test_123:test_password@db.example.supabase.co:6543/postgres" in sql
+        assert (
+            "postgresql://user_test_123:test_password@db.example.supabase.co:6543/postgres"
+            in sql
+        )
 
-    @patch('requests.get')
+    @patch("requests.get")
     def test_attach_ducklake_custom_alias(self, mock_get):
         """Test attach_ducklake with custom alias."""
         # Mock the API response
@@ -78,7 +81,7 @@ class TestDuckLakeIntegration:
         assert "AS warehouse" in sql
         assert "AS lake" not in sql
 
-    @patch('requests.get')
+    @patch("requests.get")
     def test_attach_ducklake_api_error(self, mock_get):
         """Test attach_ducklake when API returns an error."""
         # Mock API error
@@ -89,4 +92,4 @@ class TestDuckLakeIntegration:
         # Test that error is raised
         client = DefiniteClient("test_api_key")
         with pytest.raises(Exception, match="API Error"):
-            client.attach_ducklake() 
+            client.attach_ducklake()

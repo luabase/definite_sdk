@@ -60,7 +60,7 @@ class TestDefiniteDLTPipeline:
         # Verify state was persisted with JSON serialization
         assert mock_kv_store.__setitem__.call_count == 2
         mock_kv_store.__setitem__.assert_any_call("cursor", '"2024-01-01"')
-        mock_kv_store.__setitem__.assert_any_call("count", '100')
+        mock_kv_store.__setitem__.assert_any_call("count", "100")
         mock_kv_store.commit.assert_called_once()
 
         assert result == {"status": "success"}
@@ -74,7 +74,7 @@ class TestDefiniteDLTPipeline:
         mock_kv_store.__iter__.return_value = iter(["cursor", "count"])
         mock_kv_store.__getitem__.side_effect = lambda k: {
             "cursor": '"2024-01-01"',
-            "count": '100',
+            "count": "100",
         }[k]
         mock_kv_store.get.return_value = '"2024-01-01"'
 
@@ -128,7 +128,7 @@ class TestDefiniteDLTPipeline:
         mock_kv_store.__iter__.return_value = iter(["cursor", "count"])
         mock_kv_store.__getitem__.side_effect = lambda k: {
             "cursor": '"2024-01-01"',
-            "count": '100',
+            "count": "100",
         }[k]
 
         mock_client_instance = Mock()
@@ -191,7 +191,7 @@ class TestDLTStateAdapter:
         # Verify state was saved with JSON serialization
         assert mock_kv_store.__setitem__.call_count == 2
         mock_kv_store.__setitem__.assert_any_call("cursor", '"2024-01-01"')
-        mock_kv_store.__setitem__.assert_any_call("count", '100')
+        mock_kv_store.__setitem__.assert_any_call("count", "100")
         mock_kv_store.commit.assert_called_once()
 
     @patch("definite_sdk.dlt.DefiniteClient")
@@ -202,7 +202,7 @@ class TestDLTStateAdapter:
         mock_kv_store.__iter__.return_value = iter(["cursor", "count"])
         mock_kv_store.__getitem__.side_effect = lambda k: {
             "cursor": '"2024-01-01"',
-            "count": '100',
+            "count": "100",
         }[k]
 
         mock_client_instance = Mock()

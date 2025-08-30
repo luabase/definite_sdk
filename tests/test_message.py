@@ -33,7 +33,7 @@ class TestDefiniteMessageClient:
             channel="slack",
             integration_id="slack_123",
             to="C0920MVPWFN",
-            content="Hello from test!"
+            content="Hello from test!",
         )
 
         # Verify request
@@ -42,9 +42,9 @@ class TestDefiniteMessageClient:
             json={
                 "integration_id": "slack_123",
                 "channel_id": "C0920MVPWFN",
-                "text": "Hello from test!"
+                "text": "Hello from test!",
             },
-            headers={"Authorization": "Bearer test_api_key"}
+            headers={"Authorization": "Bearer test_api_key"},
         )
 
         assert result == {"ok": True, "ts": "1234567890.123456"}
@@ -59,10 +59,7 @@ class TestDefiniteMessageClient:
 
         # Test blocks
         blocks = [
-            {
-                "type": "section",
-                "text": {"type": "mrkdwn", "text": "*Bold text*"}
-            }
+            {"type": "section", "text": {"type": "mrkdwn", "text": "*Bold text*"}}
         ]
 
         # Send message
@@ -71,7 +68,7 @@ class TestDefiniteMessageClient:
             integration_id="slack_123",
             to="C0920MVPWFN",
             content="Fallback text",
-            blocks=blocks
+            blocks=blocks,
         )
 
         # Verify request
@@ -81,9 +78,9 @@ class TestDefiniteMessageClient:
                 "integration_id": "slack_123",
                 "channel_id": "C0920MVPWFN",
                 "text": "Fallback text",
-                "blocks": blocks
+                "blocks": blocks,
             },
-            headers={"Authorization": "Bearer test_api_key"}
+            headers={"Authorization": "Bearer test_api_key"},
         )
 
     @patch("requests.post")
@@ -100,7 +97,7 @@ class TestDefiniteMessageClient:
             integration_id="slack_123",
             to="C0920MVPWFN",
             content="Reply in thread",
-            thread_ts="1234567890.000000"
+            thread_ts="1234567890.000000",
         )
 
         # Verify request
@@ -110,9 +107,9 @@ class TestDefiniteMessageClient:
                 "integration_id": "slack_123",
                 "channel_id": "C0920MVPWFN",
                 "text": "Reply in thread",
-                "thread_ts": "1234567890.000000"
+                "thread_ts": "1234567890.000000",
             },
-            headers={"Authorization": "Bearer test_api_key"}
+            headers={"Authorization": "Bearer test_api_key"},
         )
 
     @patch("requests.post")
@@ -127,7 +124,7 @@ class TestDefiniteMessageClient:
         result = message_client.send_slack_message(
             integration_id="slack_123",
             channel_id="C0920MVPWFN",
-            text="Hello from convenience method!"
+            text="Hello from convenience method!",
         )
 
         # Verify request
@@ -136,9 +133,9 @@ class TestDefiniteMessageClient:
             json={
                 "integration_id": "slack_123",
                 "channel_id": "C0920MVPWFN",
-                "text": "Hello from convenience method!"
+                "text": "Hello from convenience method!",
             },
-            headers={"Authorization": "Bearer test_api_key"}
+            headers={"Authorization": "Bearer test_api_key"},
         )
 
         assert result == {"ok": True, "ts": "1234567890.123456"}
@@ -149,7 +146,7 @@ class TestDefiniteMessageClient:
                 channel="email",
                 integration_id="email_123",
                 to="test@example.com",
-                content="Hello"
+                content="Hello",
             )
 
     @patch("requests.post")
@@ -167,7 +164,7 @@ class TestDefiniteMessageClient:
             to="C0920MVPWFN",
             content="Hello",
             custom_field="custom_value",
-            another_field=123
+            another_field=123,
         )
 
         # Verify additional fields are included
