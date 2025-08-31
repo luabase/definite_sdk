@@ -96,7 +96,7 @@ class DefiniteClient:
             if response.status_code == 404:
                 raise ValueError(
                     "DuckLake integration not found. Please ensure you have a DuckLake integration "
-                    "configured in your Definite account at https://app.definite.app/integrations"
+                    "configured in your Definite account at https://ui.definite.app"
                 ) from e
             else:
                 raise
