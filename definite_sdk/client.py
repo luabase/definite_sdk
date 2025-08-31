@@ -85,12 +85,21 @@ class DefiniteClient:
             >>> conn.execute(sql)
         """
         # Fetch DuckLake integration details
-        response = requests.get(
-            f"{self.api_url}/v1/api/integration/Ducklake",
-            headers={"Authorization": f"Bearer {self.api_key}"},
-        )
-        response.raise_for_status()
-        dl_integration = response.json()
+        try:
+            response = requests.get(
+                f"{self.api_url}/v1/api/integration/Ducklake",
+                headers={"Authorization": f"Bearer {self.api_key}"},
+            )
+            response.raise_for_status()
+            dl_integration = response.json()
+        except requests.exceptions.HTTPError as e:
+            if response.status_code == 404:
+                raise ValueError(
+                    "DuckLake integration not found. Please ensure you have a DuckLake integration "
+                    "configured in your Definite account at https://ui.definite.app"
+                ) from e
+            else:
+                raise
 
         # Generate SQL statements
         create_secret_sql = f"""CREATE SECRET (

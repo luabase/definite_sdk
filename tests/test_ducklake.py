@@ -2,6 +2,7 @@ import os
 import json
 from unittest.mock import Mock, patch
 import pytest
+import requests
 
 from definite_sdk import DefiniteClient
 
@@ -92,4 +93,18 @@ class TestDuckLakeIntegration:
         # Test that error is raised
         client = DefiniteClient("test_api_key")
         with pytest.raises(Exception, match="API Error"):
+            client.attach_ducklake()
+
+    @patch("requests.get")
+    def test_attach_ducklake_integration_not_found(self, mock_get):
+        """Test attach_ducklake when DuckLake integration is not found."""
+        # Mock 404 response
+        mock_response = Mock()
+        mock_response.status_code = 404
+        mock_response.raise_for_status.side_effect = requests.exceptions.HTTPError("404 Not Found")
+        mock_get.return_value = mock_response
+
+        # Test that helpful error message is raised
+        client = DefiniteClient("test_api_key")
+        with pytest.raises(ValueError, match="DuckLake integration not found"):
             client.attach_ducklake()
