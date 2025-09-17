@@ -16,6 +16,7 @@ class DefiniteIntegrationStore:
     Accessing values:
     >>> integration_store.list_integrations()
     >>> integration_store.get_integration("name")
+    >>> integration_store.get_integration_by_id("integration_id")
     """
 
     def __init__(self, api_key: str, api_url: str):
@@ -54,6 +55,23 @@ class DefiniteIntegrationStore:
         """
         response = requests.get(
             self._integration_store_url + f"/{name}",
+            headers={"Authorization": "Bearer " + self._api_key},
+        )
+        response.raise_for_status()
+        return dict(response.json())
+
+    def get_integration_by_id(self, integration_id: str) -> dict:
+        """
+        Retrieves an integration by ID.
+
+        Args:
+            integration_id (str): The ID of the integration.
+
+        Returns:
+            dict: The integration details.
+        """
+        response = requests.get(
+            self._integration_store_url + f"/id/{integration_id}",
             headers={"Authorization": "Bearer " + self._api_key},
         )
         response.raise_for_status()
