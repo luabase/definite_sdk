@@ -1,8 +1,8 @@
-from typing import Iterator, Optional, Tuple
+from typing import Dict, List, cast
 
 import requests
 
-INTEGRATION_ENDPOINT = "/v1/api/integration"
+INTEGRATION_ENDPOINT = "/v1/api/integrations"
 
 
 class DefiniteIntegrationStore:
@@ -27,9 +27,9 @@ class DefiniteIntegrationStore:
             api_key (str): The API key for authorization.
         """
         self._api_key = api_key
-        self._integration_store_url = api_url + INTEGRATION_ENDPOINT
+        self._integrations_url = api_url + INTEGRATION_ENDPOINT
 
-    def list_integrations(self) -> Iterator[dict]:
+    def list_integrations(self) -> List[Dict]:
         """
         Lists all integrations in the store.
 
@@ -37,13 +37,17 @@ class DefiniteIntegrationStore:
             Iterator[str]: An iterator of integrations.
         """
         response = requests.get(
-            self._integration_store_url,
+            self._integrations_url,
+            params={"category": "extractor"},
             headers={"Authorization": "Bearer " + self._api_key},
         )
         response.raise_for_status()
-        return iter(response.json())
+        cursor_page = response.json()
+        integrations = cursor_page.get("data", [])
+        details = [i.get("details", {}) for i in integrations]
+        return cast(List[Dict], details)
 
-    def get_integration(self, name: str) -> dict:
+    def get_integration(self, name: str) -> Dict:
         """
         Retrieves an integration by name.
 
@@ -54,13 +58,19 @@ class DefiniteIntegrationStore:
             str: The value of the integration.
         """
         response = requests.get(
-            self._integration_store_url + f"/{name}",
+            self._integrations_url,
+            params={"name": name, "limit": 1},
             headers={"Authorization": "Bearer " + self._api_key},
         )
         response.raise_for_status()
-        return dict(response.json())
+        cursor_page = response.json()
+        integrations = cursor_page.get("data", [])
+        if len(integrations) == 0:
+            raise Exception(f"Integration with name {name} not found")
+        integration = integrations[0]
+        return integration.get("details", {})
 
-    def get_integration_by_id(self, integration_id: str) -> dict:
+    def get_integration_by_id(self, integration_id: str) -> Dict:
         """
         Retrieves an integration by ID.
 
@@ -71,47 +81,35 @@ class DefiniteIntegrationStore:
             dict: The integration details.
         """
         response = requests.get(
-            self._integration_store_url + f"/id/{integration_id}",
+            self._integrations_url,
+            params={"id": integration_id, "limit": 1},
             headers={"Authorization": "Bearer " + self._api_key},
         )
         response.raise_for_status()
-        return dict(response.json())
+        cursor_page = response.json()
+        integrations = cursor_page.get("data", [])
+        if len(integrations) == 0:
+            raise Exception(f"Integration with ID {integration_id} not found")
+        integration = integrations[0]
+        return integration.get("details", {})
 
-    def lookup_duckdb_integration(self) -> Optional[Tuple[str, str]]:
+    def lookup_duckdb_integration(self) -> Dict:
         """
         Look up the team's DuckDB integration.
-
-        Note: Currently, the API only returns extractor (source) integrations.
-        Destination integrations like DuckDB are not yet exposed through this endpoint.
-        This method is provided for future compatibility when the API is updated.
 
         Returns:
             Optional[Tuple[str, str]]: Tuple of (integration_id, connection_uri)
                 if found, None if no DuckDB integration exists.
         """
-        try:
-            response = requests.get(
-                self._integration_store_url,
-                headers={"Authorization": "Bearer " + self._api_key},
-            )
-            response.raise_for_status()
-            integrations = response.json()
-        except:
-            return None
-
-        # Check for DuckDB in the integrations
-        # Note: Currently this will not find DuckDB as it's a destination integration
-        for integration in integrations:
-            integration_type = integration.get("integration_type", "").lower()
-            if integration_type == "duckdb" and integration.get("active", True):
-                integration_id = integration.get("id")
-                # Connection URI might be in config or connection_string field
-                connection_uri = (
-                    integration.get("connection_string")
-                    or integration.get("config", {}).get("database_path")
-                    or integration.get("config", {}).get("connection_string")
-                )
-                if integration_id and connection_uri:
-                    return (integration_id, connection_uri)
-
-        return None
+        response = requests.get(
+            self._integrations_url,
+            params={"type": "duckdb", "limit": 1},
+            headers={"Authorization": "Bearer " + self._api_key},
+        )
+        response.raise_for_status()
+        cursor_page = response.json()
+        integrations = cursor_page.get("data", [])
+        if len(integrations) == 0:
+            raise Exception("Integration with type `duckdb` not found")
+        integration = integrations[0]
+        return integration.get("details", {})
