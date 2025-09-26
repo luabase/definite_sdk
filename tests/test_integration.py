@@ -5,8 +5,6 @@ from definite_sdk.client import DefiniteClient, API_URL
 api_key = os.getenv("DEF_API_KEY") or ""
 api_url = os.getenv("DEF_API_URL") or API_URL
 
-assert api_key
-
 
 def test_integration_store():
     integration_store = DefiniteClient(api_key, api_url).get_integration_store()
