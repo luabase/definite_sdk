@@ -1,4 +1,4 @@
-from typing import Dict, List, cast
+from typing import Dict, List, Optional, cast
 
 import requests
 
@@ -29,16 +29,31 @@ class DefiniteIntegrationStore:
         self._api_key = api_key
         self._integrations_url = api_url + INTEGRATION_ENDPOINT
 
-    def list_integrations(self) -> List[Dict]:
+    def list_integrations(
+        self,
+        *,
+        integration_type: Optional[str] = None,
+        category: Optional[str] = None,
+    ) -> List[Dict]:
         """
         Lists all integrations in the store.
+
+        Args:
+            integration_type (str): Optional type filter
+            category (str): Optional category filter
 
         Returns:
             Iterator[str]: An iterator of integrations.
         """
+        params = {}
+        if integration_type:
+            params |= {"type": integration_type}
+        if category:
+            params |= {"category": category}
+
         response = requests.get(
             self._integrations_url,
-            params={"category": "extractor"},
+            params=params,
             headers={"Authorization": "Bearer " + self._api_key},
         )
         response.raise_for_status()
