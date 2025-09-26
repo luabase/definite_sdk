@@ -1,7 +1,6 @@
 import os
 from typing import Optional
 
-import requests
 from definite_sdk.integration import DefiniteIntegrationStore
 from definite_sdk.message import DefiniteMessageClient
 from definite_sdk.secret import DefiniteSecretStore
@@ -73,6 +72,7 @@ class DefiniteClient:
         This method fetches the team's DuckLake integration credentials and generates
         the necessary SQL statements to create a GCS secret and attach DuckLake.
 
+
         Args:
             alias: The alias name for the attached DuckLake database (default: "lake")
 
@@ -85,42 +85,38 @@ class DefiniteClient:
             >>> conn.execute(sql)
         """
         # Fetch DuckLake integration details
-        try:
-            response = requests.get(
-                f"{self.api_url}/v1/api/integration/Ducklake",
-                headers={"Authorization": f"Bearer {self.api_key}"},
+        integrations_client = self.get_integration_store()
+        integrations = integrations_client.list_integrations(
+            integration_type="ducklake"
+        )
+        if len(integrations) == 0:
+            raise Exception(
+                "DuckLake integration not found. Please make sure one is"
+                "created for your team at https://ui.definite.app/settings/integrations"
             )
-            response.raise_for_status()
-            dl_integration = response.json()
-        except requests.exceptions.HTTPError as e:
-            if response.status_code == 404:
-                raise ValueError(
-                    "DuckLake integration not found. Please ensure you have a DuckLake integration "
-                    "configured in your Definite account at https://ui.definite.app"
-                ) from e
-            else:
-                raise
+
+        integration = integrations.pop()
 
         # Generate SQL statements
         create_secret_sql = f"""CREATE SECRET (
-    TYPE gcs,
-    KEY_ID '{dl_integration['gcs_access_key_id']}',
-    SECRET '{dl_integration['gcs_secret_access_key']}'
-);"""
+            TYPE gcs,
+            KEY_ID '{integration["gcs_access_key_id"]}',
+            SECRET '{integration["gcs_secret_access_key"]}'
+        );"""
 
         # Build PostgreSQL connection string
         pg_conn_str = (
-            f"postgresql://{dl_integration['pg_user']}:"
-            f"{dl_integration['pg_password']}@"
-            f"{dl_integration['pg_host']}:"
-            f"{dl_integration['pg_port']}/"
-            f"{dl_integration['pg_database']}"
+            f"postgresql://{integration['pg_user']}:"
+            f"{integration['pg_password']}@"
+            f"{integration['pg_host']}:"
+            f"{integration['pg_port']}/"
+            f"{integration['pg_database']}"
         )
 
         attach_sql = (
             f"ATTACH 'ducklake:postgres:{pg_conn_str}' AS {alias} "
-            f"(DATA_PATH 'gs://{dl_integration['gcs_bucket_path']}', "
-            f"METADATA_SCHEMA '{dl_integration['pg_schema']}');"
+            f"(DATA_PATH 'gs://{integration['gcs_bucket_path']}', "
+            f"METADATA_SCHEMA '{integration['pg_schema']}');"
         )
 
         return f"{create_secret_sql}\n\n{attach_sql}"
