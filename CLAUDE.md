@@ -41,6 +41,37 @@ Key architectural decisions:
 - All API calls use Bearer token authentication
 - No caching - each operation makes direct API calls
 
+## Publishing to PyPI
+
+To publish a new version:
+
+1. **Bump the version** in `pyproject.toml`:
+   ```toml
+   version = "0.1.X"  # increment the patch version
+   ```
+
+2. **Create a PR** with the version bump and merge to `main`
+
+3. **Trigger the publish workflow** via GitHub CLI:
+   ```bash
+   gh workflow run publish.yml
+   ```
+
+   Or manually via GitHub Actions: https://github.com/luabase/definite_sdk/actions/workflows/publish.yml
+
+4. **Monitor the workflow** to ensure it completes successfully:
+   ```bash
+   gh run list --workflow=publish.yml --limit=1
+   gh run watch <run_id>
+   ```
+
+The workflow will:
+- Build the package
+- Create a GitHub release with tag `v{version}`
+- Publish to PyPI
+
+**Important**: The version in `pyproject.toml` must be incremented before running the publish workflow, otherwise the "Create GitHub Release" step will fail with "Release.tag_name already exists".
+
 ## Known Issues
 
 - integration.py incorrectly uses `SECRET_STORE_ENDPOINT` instead of a proper integration endpoint constant
