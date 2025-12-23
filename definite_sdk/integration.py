@@ -59,7 +59,7 @@ class DefiniteIntegrationStore:
         response.raise_for_status()
         cursor_page = response.json()
         integrations = cursor_page.get("data", [])
-        details = [i.get("details", {}) for i in integrations]
+        details = [{"id": i.get("id"), **i.get("details", {})} for i in integrations]
         return cast(List[Dict], details)
 
     def get_integration(self, name: str) -> Dict:
