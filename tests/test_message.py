@@ -141,13 +141,88 @@ class TestDefiniteMessageClient:
         assert result == {"ok": True, "ts": "1234567890.123456"}
 
     def test_send_message_unsupported_channel(self, message_client):
-        with pytest.raises(ValueError, match="Unsupported channel: email"):
+        with pytest.raises(ValueError, match="Unsupported channel: sms"):
             message_client.send_message(
-                channel="email",
-                integration_id="email_123",
-                to="test@example.com",
+                channel="sms",
+                integration_id="sms_123",
+                to="+15551234567",
                 content="Hello",
             )
+
+    @patch("requests.post")
+    def test_send_email_message_simple(self, mock_post, message_client):
+        mock_response = Mock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {"ok": True}
+        mock_post.return_value = mock_response
+
+        result = message_client.send_message(
+            channel="email",
+            integration_id="",
+            to="user@example.com",
+            content="<p>Hello!</p>",
+            subject="Test Subject",
+        )
+
+        mock_post.assert_called_once_with(
+            "https://api.definite.app/v3/email/message",
+            json={
+                "toEmails": ["user@example.com"],
+                "subject": "Test Subject",
+                "body": "<p>Hello!</p>",
+            },
+            headers={"Authorization": "Bearer test_api_key"},
+        )
+        assert result == {"ok": True}
+
+    @patch("requests.post")
+    def test_send_email_message_multiple_recipients(self, mock_post, message_client):
+        mock_response = Mock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {"ok": True}
+        mock_post.return_value = mock_response
+
+        result = message_client.send_message(
+            channel="email",
+            integration_id="",
+            to="a@example.com, b@example.com",
+            content="<p>Team update</p>",
+            subject="Update",
+        )
+
+        mock_post.assert_called_once_with(
+            "https://api.definite.app/v3/email/message",
+            json={
+                "toEmails": ["a@example.com", "b@example.com"],
+                "subject": "Update",
+                "body": "<p>Team update</p>",
+            },
+            headers={"Authorization": "Bearer test_api_key"},
+        )
+
+    @patch("requests.post")
+    def test_send_email_message_convenience_method(self, mock_post, message_client):
+        mock_response = Mock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {"ok": True}
+        mock_post.return_value = mock_response
+
+        result = message_client.send_email_message(
+            to_emails=["user@example.com"],
+            subject="Daily Report",
+            body="<h1>Report</h1>",
+        )
+
+        mock_post.assert_called_once_with(
+            "https://api.definite.app/v3/email/message",
+            json={
+                "toEmails": ["user@example.com"],
+                "subject": "Daily Report",
+                "body": "<h1>Report</h1>",
+            },
+            headers={"Authorization": "Bearer test_api_key"},
+        )
+        assert result == {"ok": True}
 
     @patch("requests.post")
     def test_send_message_with_additional_kwargs(self, mock_post, message_client):
