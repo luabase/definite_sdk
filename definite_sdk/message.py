@@ -107,6 +107,14 @@ class DefiniteMessageClient:
                 thread_ts=thread_ts,
                 **kwargs,
             )
+        elif channel_lower == "email":
+            to_emails = [e.strip() for e in to.split(",") if e.strip()]
+            return self._send_email_message(
+                to_emails=to_emails,
+                subject=subject or "",
+                body=content,
+                **kwargs,
+            )
         else:
             raise ValueError(f"Unsupported channel: {channel}")
 
@@ -195,5 +203,78 @@ class DefiniteMessageClient:
             content=text,
             blocks=blocks,
             thread_ts=thread_ts,
+            **kwargs,
+        )
+
+    def _send_email_message(
+        self,
+        to_emails: List[str],
+        subject: str,
+        body: str,
+        **kwargs: Any,
+    ) -> Dict[str, Any]:
+        """
+        Internal method to send an email message via SendGrid.
+
+        Args:
+            to_emails (List[str]): List of recipient email addresses.
+            subject (str): The email subject line.
+            body (str): The email body (HTML supported).
+            **kwargs: Additional email-specific parameters.
+
+        Returns:
+            Dict[str, Any]: The API response.
+        """
+        url = f"{self._message_url}/email/message"
+
+        payload: Dict[str, Any] = {
+            "toEmails": to_emails,
+            "subject": subject,
+            "body": body,
+        }
+
+        payload.update(kwargs)
+
+        response = requests.post(
+            url,
+            json=payload,
+            headers={"Authorization": "Bearer " + self._api_key},
+        )
+        response.raise_for_status()
+        return response.json()
+
+    def send_email_message(
+        self,
+        to_emails: List[str],
+        subject: str,
+        body: str,
+        **kwargs: Any,
+    ) -> Dict[str, Any]:
+        """
+        Convenience method to send an email directly via SendGrid.
+
+        Args:
+            to_emails (List[str]): List of recipient email addresses.
+            subject (str): The email subject line.
+            body (str): The email body (HTML supported).
+            **kwargs: Additional email-specific parameters.
+
+        Returns:
+            Dict[str, Any]: The API response.
+
+        Example:
+            >>> result = message_client.send_email_message(
+            ...     to_emails=["user@example.com"],
+            ...     subject="Daily Report",
+            ...     body="<h1>Report</h1><p>All systems operational.</p>"
+            ... )
+            >>> print(f"Email sent: {result['ok']}")
+        """
+        return self.send_message(
+            channel="email",
+            integration_id="",
+            to=",".join(to_emails),
+            content=body,
+            subject=subject,
             **kwargs,
         )
