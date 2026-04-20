@@ -122,11 +122,22 @@ class DefiniteClient:
             SERVICE_ACCOUNT_JSON '{sa_json}'
         );"""
         else:
-            # ADC / credential_chain (GKE workload identity or local gcloud auth)
+            # ADC / credential_chain (GKE workload identity or local gcloud auth).
+            # Locally, requires: gcloud auth application-default login
             create_secret_sql = """CREATE SECRET (
             TYPE gcs,
             PROVIDER credential_chain
         );"""
+            import warnings
+
+            warnings.warn(
+                "DuckLake integration has no HMAC or service account keys. "
+                "Using credential_chain (GCP Application Default Credentials). "
+                "On GKE this works via Workload Identity. Locally, run: "
+                "gcloud auth application-default login --project=definite-371419\n"
+                "If attach fails, use client.get_sql_client().execute(sql) instead.",
+                stacklevel=2,
+            )
 
         # Build PostgreSQL connection string
         pg_conn_str = (
