@@ -133,9 +133,8 @@ class DefiniteClient:
             warnings.warn(
                 "DuckLake integration has no HMAC or service account keys. "
                 "Using credential_chain (GCP Application Default Credentials). "
-                "On GKE this works via Workload Identity. Locally, run: "
-                "gcloud auth application-default login --project=definite-371419\n"
-                "If attach fails, use client.get_sql_client().execute(sql) instead.",
+                "If this fails locally, use client.get_sql_client().execute(sql) "
+                "to query DuckLake via the Definite API instead.",
                 stacklevel=2,
             )
 
