@@ -97,11 +97,35 @@ class DefiniteClient:
 
         integration = integrations.pop()
 
-        # Generate SQL statements
-        create_secret_sql = f"""CREATE SECRET (
+        # Generate GCS secret SQL based on available credentials.
+        # New integrations (April 2026+) use ADC / credential_chain instead
+        # of HMAC keys. Legacy integrations may still have HMAC keys.
+        gcs_access_key = integration.get("gcs_access_key_id")
+        gcs_secret_key = integration.get("gcs_secret_access_key")
+        service_account_key = integration.get("service_account_key")
+
+        if gcs_access_key and gcs_secret_key:
+            # Legacy: HMAC key-based auth
+            create_secret_sql = f"""CREATE SECRET (
             TYPE gcs,
-            KEY_ID '{integration["gcs_access_key_id"]}',
-            SECRET '{integration["gcs_secret_access_key"]}'
+            KEY_ID '{gcs_access_key}',
+            SECRET '{gcs_secret_key}'
+        );"""
+        elif service_account_key:
+            # Service account JSON key
+            import json
+
+            sa_json = json.dumps(service_account_key).replace("'", "''")
+            create_secret_sql = f"""CREATE SECRET (
+            TYPE gcs,
+            PROVIDER service_account,
+            SERVICE_ACCOUNT_JSON '{sa_json}'
+        );"""
+        else:
+            # ADC / credential_chain (GKE workload identity or local gcloud auth)
+            create_secret_sql = """CREATE SECRET (
+            TYPE gcs,
+            PROVIDER credential_chain
         );"""
 
         # Build PostgreSQL connection string
