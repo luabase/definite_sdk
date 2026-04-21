@@ -59,7 +59,14 @@ jobs:
         run: |
           gh release create "v${{ needs.build.outputs.version }}" --generate-notes
         env:
-          GITHUB_TOKEN: ${{ secrets.PAT }}
+          # Use the default workflow token — the job already declares
+          # `permissions: contents: write` above, which is enough to create
+          # a release. The previous `secrets.PAT` lost release-creation
+          # permission (HTTP 403 on run 24743806053 for v0.1.20), and we
+          # don't rely on any downstream `on: release` workflow that would
+          # require a PAT to bypass the "tokens don't trigger workflows"
+          # restriction.
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   publish-to-pypi:
     name: >-
