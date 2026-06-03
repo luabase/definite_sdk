@@ -28,16 +28,21 @@ poetry run mypy definite_sdk/
 
 This SDK provides Python clients for Definite's cloud storage API (https://api.definite.app). The codebase follows a simple client-factory pattern:
 
-1. **DefiniteClient** (client.py): Main entry point that creates store instances
-2. **Store Implementations**:
+1. **DefiniteClient** (client.py): Main entry point that creates the per-feature clients below
+2. **Clients**:
    - **DefiniteKVStore** (store.py): Dictionary-like persistent key-value storage with version control
    - **DefiniteSecretStore** (secret.py): Direct API for managing application secrets
-   - **DefiniteIntegrationStore** (integration.py): Read-only access to integration configurations
+   - **DefiniteIntegrationStore** (integration.py): Read-only access to integration configurations (credentials live in each integration's `details` dict)
+   - **DefiniteSqlClient** (sql.py): Execute SQL (against integrations or the `LAKE.<schema>.<table>` data lake) and Cube queries
+   - **DefiniteDriveClient** (drive.py): Write files to Definite Drive; pair with the SQL client to load data into the lake
+   - **DefiniteMessageClient** (message.py): Send messages via channels (e.g. Slack)
+   - **DefiniteDLTPipeline** (dlt.py): dlt pipeline wrapper that persists state to a KV store
 
 Key architectural decisions:
 - KV Store uses optimistic locking with version IDs to prevent conflicts
-- KV Store requires explicit `commit()` to persist changes (transactional model)
-- Secret and Integration stores persist changes immediately
+- KV Store requires explicit `commit()` to persist changes (transactional model); keys/values must be strings
+- Secret, Integration, Drive, and SQL operations persist/execute immediately
+- Writing to the data lake: the supported path is Drive + SQL (`get_drive_client().write_temporary_file(...)` then `get_sql_client().execute("CREATE/INSERT/MERGE ... read_parquet('{gcs_path}')")`). `attach_ducklake()` is deprecated and unsupported for workload-identity-only teams.
 - All API calls use Bearer token authentication
 - No caching - each operation makes direct API calls
 
@@ -71,7 +76,3 @@ The workflow will:
 - Publish to PyPI
 
 **Important**: The version in `pyproject.toml` must be incremented before running the publish workflow, otherwise the "Create GitHub Release" step will fail with "Release.tag_name already exists".
-
-## Known Issues
-
-- integration.py incorrectly uses `SECRET_STORE_ENDPOINT` instead of a proper integration endpoint constant
