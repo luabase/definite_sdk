@@ -1,6 +1,12 @@
 """
-Example demonstrating how to use the attach_ducklake() method 
+Example demonstrating how to use the attach_ducklake() method
 to connect to your team's DuckLake from DuckDB.
+
+DEPRECATED: attach_ducklake() only works for legacy teams with HMAC keys or a
+service-account JSON on their DuckLake integration. Teams provisioned after
+April 2026 use workload-identity-only auth and will raise
+UnsupportedDuckLakeAttachError. For the supported way to write to the lake, see
+examples/lake_write_example.py (Drive + SQL).
 """
 
 import os

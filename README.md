@@ -41,50 +41,88 @@ client = DefiniteClient("YOUR_API_KEY")
 - **DuckLake Integration**: Easy attachment of your team's DuckLake to DuckDB connections
 - **DuckDB Support**: Automatic discovery and connection to team's DuckDB integrations
 
+## Which method for which task
+
+| Task | Entry point | Key methods | Persistence |
+|------|-------------|-------------|-------------|
+| Read integration credentials/config | `client.get_integration_store()` | `get_integration(name)`, `get_integration_by_id(id)`, `list_integrations()` | read-only |
+| Store/retrieve your own secrets | `client.get_secret_store()` | `set_secret`, `get_secret`, `list_secrets`, `delete_secret` | immediate |
+| Read from the data lake / databases | `client.get_sql_client()` | `execute(sql)`, `execute_cube_query(...)` | n/a |
+| Write to the data lake (recommended) | `client.get_drive_client()` + `client.get_sql_client()` | `write_temporary_file(...)` then `execute("CREATE/INSERT/MERGE ...")` | immediate |
+| Write to the data lake (legacy) | `client.attach_ducklake()` | returns SQL to attach DuckLake to a local DuckDB — **deprecated** | immediate |
+| Persist key-value state | `client.get_kv_store(name)` | `store[key] = value`, then `store.commit()` | **explicit `commit()`** |
+| Send messages (Slack, …) | `client.get_message_client()` | `send_message(...)`, `send_slack_message(...)` | immediate |
+
+The data lake is a **DuckLake** warehouse addressed in SQL as `LAKE.<schema>.<table>`.
+
 ## Basic Usage
 
 ### 🗄️ Key-Value Store
 
 Store and retrieve key-value pairs that can be accessed by custom Python scripts hosted on Definite.
 
+The store behaves like a Python dict in memory, but **nothing is saved until you call `commit()`**. Keys and values must both be strings — JSON-encode anything more complex.
+
 ```python
+import json
+
 # Initialize or retrieve an existing key-value store
 store = client.get_kv_store('test_store')
 # Or use the alias method
 store = client.kv_store('test_store')
 
-# Add or update key-value pairs
+# Add or update key-value pairs (values must be strings)
 store['replication_key'] = 'created_at'
 store['replication_state'] = '2024-05-20'
 store["key1"] = "value1"
-store["key2"] = {"nested": "data"}
+store["key2"] = json.dumps({"nested": "data"})  # JSON-encode non-string values
 
-# Commit changes
+# Commit changes (REQUIRED — without this, nothing is persisted)
 store.commit()
 
 # Retrieve values
-print(store['replication_key'])  # 'created_at'
-value = store["key1"]
+print(store['replication_key'])         # 'created_at'
+value = store["key1"]                    # "value1"
+nested = json.loads(store["key2"])       # {"nested": "data"}
+missing = store.get("absent", "default") # dict-style get with default
 ```
+
+**Versioning / conflict handling:** the store loads a `version_id` when you open it and sends it on `commit()`. If someone else committed in the meantime, your `commit()` raises rather than silently overwriting their changes (optimistic locking). Re-open the store and re-apply your changes to retry. Call `store.delete()` to permanently remove the whole store.
 
 ### 🗃️ SQL Query Execution
 
-Execute SQL queries against your connected database integrations.
+Execute SQL queries against your connected database integrations, or against the data lake (`LAKE.<schema>.<table>`).
 
 ```python
 # Initialize the SQL client
 sql_client = client.get_sql_client()
 
-# Execute a SQL query
-result = sql_client.execute("SELECT * FROM users LIMIT 10")
-print(result)
+# Read from a data lake table
+result = sql_client.execute("SELECT * FROM LAKE.MY_SCHEMA.events LIMIT 10")
 
-# Execute a SQL query with a specific integration
+# Execute a SQL query against a specific integration
+# (integration_id is the ID from the integration's page URL; omit it to use the default)
 result = sql_client.execute(
     "SELECT COUNT(*) FROM orders WHERE status = 'completed'",
     integration_id="my_database_integration"
 )
-print(result)
+```
+
+`execute()` returns a parsed JSON dict shaped like:
+
+```python
+{
+    "success": True,
+    "columns": ["id", "name"],
+    "data": [
+        {"id": 1, "name": "John"},
+        {"id": 2, "name": "Jane"},
+    ],
+}
+
+# Access rows:
+for row in result["data"]:
+    print(row["name"])
 ```
 
 ### 📊 Cube Query Execution
@@ -111,6 +149,60 @@ result = sql_client.execute_cube_query(
 print(result)
 ```
 
+### 🏞️ Writing to the Data Lake
+
+The recommended way to load data into the lake is **Drive + SQL**: upload a file (parquet/csv) to Definite Drive, then run a SQL statement that reads it into a `LAKE.<schema>.<table>` table. This works for all teams (including workload-identity-only teams provisioned after April 2026).
+
+```python
+import io
+import pandas as pd
+
+drive = client.get_drive_client()   # alias: client.drive_client()
+sql_client = client.get_sql_client()
+
+# 1. Turn a DataFrame into parquet bytes
+df = pd.DataFrame([{"id": 1, "name": "alice"}, {"id": 2, "name": "bob"}])
+buf = io.BytesIO()
+df.to_parquet(buf)
+
+# 2. Upload to a temporary, auto-expiring location in Drive
+result = drive.write_temporary_file(buf.getvalue(), name="users.parquet", ttl_days=7)
+# result.gcs_path -> "gs://.../users.parquet", usable directly in SQL
+
+# 3a. CREATE (or replace) a lake table from the uploaded file
+sql_client.execute(
+    f"CREATE OR REPLACE TABLE LAKE.MY_SCHEMA.users AS "
+    f"SELECT * FROM read_parquet('{result.gcs_path}')"
+)
+
+# 3b. INSERT (append) into an existing table
+sql_client.execute(
+    f"INSERT INTO LAKE.MY_SCHEMA.users "
+    f"SELECT * FROM read_parquet('{result.gcs_path}')"
+)
+
+# 3c. MERGE / upsert on a key
+sql_client.execute(f"""
+    MERGE INTO LAKE.MY_SCHEMA.users AS t
+    USING (SELECT * FROM read_parquet('{result.gcs_path}')) AS s
+    ON t.id = s.id
+    WHEN MATCHED THEN UPDATE SET *
+    WHEN NOT MATCHED THEN INSERT *
+""")
+```
+
+**Drive write methods** (`client.get_drive_client()`):
+
+- `write_temporary_file(data, name=..., ttl_days=1..30)` — server picks a path under `_tmp/<date>/<uuid>/<name>`, auto-deleted after the TTL. Use it to stage data for a one-time ingest.
+- `write_file(data, path="folder/file.parquet")` — persistent file at an explicit path, kept until you delete it.
+
+Both accept `bytes`, `str`, a filesystem path, or a binary file-like object, and return a `DriveWriteResult` with:
+
+- `gcs_path` — full `gs://` URI; use this in SQL (`read_parquet(...)`, `read_csv(...)`, …).
+- `drive_path` — the path a pipeline sandbox sees (`/home/user/drive/...`).
+- `path` — the drive-relative path (e.g. `ingest/events.parquet`).
+- `expires_at` — ISO 8601 deletion time (temporary writes only).
+
 ### 🔒 Secret Store
 
 Securely store and retrieve secrets for your integrations.
@@ -133,7 +225,7 @@ secrets = list(secret_store.list_secrets())
 
 ### 🔗 Integration Management
 
-Manage your data integrations and connections.
+Read-only access to your integrations. Credentials and config live in the integration's `details` dict — this is how you obtain an integration's API key, host, tokens, etc.
 
 ```python
 # Initialize the integration store
@@ -141,11 +233,29 @@ integration_store = client.get_integration_store()
 # Or use the alias method
 integration_store = client.integration_store()
 
-# List all integrations
-integrations = list(integration_store.list_integrations())
+# List all integrations (optionally filter by type or category)
+integrations = integration_store.list_integrations()                       # all
+integrations = integration_store.list_integrations(integration_type="slack")
+# Each item in list_integrations() is {"id": <id>, **details} — id + flattened details.
 
-# Get a specific integration
-integration = integration_store.get_integration("my_integration")
+# Get a specific integration's details (by name or by id)
+details = integration_store.get_integration("my_integration")        # returns the details dict
+details = integration_store.get_integration_by_id("integration_uuid")
+
+# Read a credential / config value out of the details dict
+api_key = details.get("api_key")
+host = details.get("host")
+```
+
+> Note the return-shape difference: `list_integrations()` injects the `id` and flattens the
+> details into each record, while `get_integration()` / `get_integration_by_id()` return only
+> the `details` dict (no `id`). Both raise if nothing matches.
+
+You can also inspect an integration's sync (DAG) runs:
+
+```python
+runs = integration_store.get_syncs("integration_id", limit=50, status="FAILED")
+latest = integration_store.get_latest_sync("integration_id")
 ```
 
 ### 💬 Messaging
@@ -211,9 +321,16 @@ pipeline.run(orders())
 last_cursor = pipeline.get_state("orders")
 ```
 
-### DuckLake Integration
+### DuckLake Integration (legacy / deprecated)
 
-Attach your team's DuckLake to a DuckDB connection for seamless data access:
+> ⚠️ **Deprecated.** `attach_ducklake()` only works for legacy teams that have HMAC keys or a
+> service-account JSON on their DuckLake integration. Teams provisioned after **April 2026** use
+> workload-identity-only auth and will raise `UnsupportedDuckLakeAttachError`, since those
+> credentials cannot be replicated on a customer laptop. Calling it also emits a
+> `DeprecationWarning`. **Use the [Writing to the Data Lake](#-writing-to-the-data-lake)
+> (Drive + SQL) workflow instead** — it works for all teams.
+
+Attach your team's DuckLake to a local DuckDB connection for direct data access:
 
 ```python
 import duckdb
@@ -222,7 +339,7 @@ from definite_sdk import DefiniteClient
 # Initialize the client
 client = DefiniteClient("YOUR_API_KEY")
 
-# Connect to DuckDB and attach DuckLake
+# Connect to DuckDB and attach DuckLake (raises UnsupportedDuckLakeAttachError on newer teams)
 conn = duckdb.connect()
 conn.execute(client.attach_ducklake())
 
